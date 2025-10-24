@@ -2,6 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Sudoku Mini App</title>
   <style>
@@ -29,9 +30,7 @@
       width: 100%; aspect-ratio: 1 / 1; background: var(--panel); padding: 10px; border-radius: 18px; box-shadow: var(--shadow);
       display: grid; grid-template-columns: repeat(9, 1fr); grid-template-rows: repeat(9, 1fr); gap: 2px;
     }
-    .cell {
-      position: relative; background: var(--grid); border-radius: 8px; overflow: hidden; cursor: pointer; outline: none; border: 1px solid transparent; transition: transform .02s ease;
-    }
+    .cell { position: relative; background: var(--grid); border-radius: 8px; overflow: hidden; cursor: pointer; outline: none; border: 1px solid transparent; transition: transform .02s ease; }
     .cell:active { transform: scale(.998); }
     .cell[aria-selected="true"] { border-color: var(--accent); box-shadow: 0 0 0 1.5px var(--accent) inset; }
     .value { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-weight: 700; font-size: clamp(16px, 3.2vmin, 28px); }
@@ -117,6 +116,11 @@
     </aside>
   </div>
 
+  <footer style="max-width:980px;margin:12px auto 0;color:#8a8fa3;font-size:12px;display:flex;justify-content:space-between;align-items:center;gap:8px;">
+    <div>Version: <span id="ver"></span></div>
+    <button id="diagBtn" class="btn" style="padding:6px 10px;">🔎 运行诊断</button>
+  </footer>
+
 <script>
 (function(){
   /*** Data Model ***/
@@ -139,16 +143,12 @@
   const COLS = Array.from({length:9}, (_,c)=> Array.from({length:9},(_,r)=> r*9+c));
   const BOXES = Array.from({length:9}, (_,b)=>{ const br=Math.floor(b/3)*3, bc=(b%3)*3; return Array.from({length:9}, (_,k)=> (br+Math.floor(k/3))*9 + (bc+(k%3))); });
 
-  function updatePencilVisibility(){
-    gridEl.classList.toggle('show-pencils', realPencilMode());
-  }
+  function updatePencilVisibility(){ gridEl.classList.toggle('show-pencils', realPencilMode()); }
 
   /*** Helpers ***/
   const rc = idx => [Math.floor(idx/9), idx%9];
   const boxId = (r,c)=> Math.floor(r/3)*3 + Math.floor(c/3);
-  function cloneBoard(b){
-    return b.map(c=>({value:c.value,given:c.given,pencil:new Set(c.pencil)}));
-  }
+  function cloneBoard(b){ return b.map(c=>({value:c.value,given:c.given,pencil:new Set(c.pencil)})); }
   function pushHistory(){ history.push(JSON.stringify(serialize())); future.length=0; }
   function undo(){ if(history.length){ future.push(JSON.stringify(serialize())); deserialize(JSON.parse(history.pop())); render(); select(selected); }}
   function redo(){ if(future.length){ history.push(JSON.stringify(serialize())); deserialize(JSON.parse(future.pop())); render(); select(selected); }}
@@ -168,10 +168,7 @@
       const p = document.createElement('div');
       p.className='pencil'; p.textContent=String(d);
       p.dataset.d = d;
-      p.addEventListener('click', (e)=>{
-        e.stopPropagation();
-        handleDigit(d, true);
-      });
+      p.addEventListener('click', (e)=>{ e.stopPropagation(); handleDigit(d, true); });
       pencils.appendChild(p);
     }
 
@@ -184,34 +181,23 @@
   }
 
   function render(){
-    if(!gridEl.children.length){
-      for(let i=0;i<size;i++) gridEl.appendChild(makeCell(i));
-    }
+    if(!gridEl.children.length){ for(let i=0;i<size;i++) gridEl.appendChild(makeCell(i)); }
     for(let i=0;i<size;i++){
       const cellEl = gridEl.children[i];
       const valueEl = cellEl.querySelector('.value');
       const pencilsEl = cellEl.querySelector('.pencils');
       const cell = board[i];
-      // value layer
       valueEl.textContent = cell.value ? String(cell.value) : '';
       valueEl.className = 'value ' + (cell.value ? (cell.given?'given':'user') : '');
-      // pencils layer
-      [...pencilsEl.children].forEach(p=>{
-        const d = Number(p.dataset.d);
-        p.className = 'pencil' + (cell.pencil.has(d) && !cell.value ? ' on' : '');
-      });
-      // conflicts
+      [...pencilsEl.children].forEach(p=>{ const d = Number(p.dataset.d); p.className = 'pencil' + (cell.pencil.has(d) && !cell.value ? ' on' : ''); });
       const conflict = isConflictAt(i);
-      if(conflict && cell.value){ valueEl.classList.add('conflict'); }
-      else valueEl.classList.remove('conflict');
+      if(conflict && cell.value){ valueEl.classList.add('conflict'); } else { valueEl.classList.remove('conflict'); }
     }
   }
 
   function select(i){
     selected = i;
-    for(let j=0;j<size;j++){
-      gridEl.children[j].setAttribute('aria-selected', j===i ? 'true':'false');
-    }
+    for(let j=0;j<size;j++){ gridEl.children[j].setAttribute('aria-selected', j===i ? 'true':'false'); }
     gridEl.children[i].focus({preventScroll:true});
   }
 
@@ -234,6 +220,7 @@
     }
     return false;
   }
+
   /*** Candidates & Logic Rules ***/
   function candidatesFor(i){
     if(board[i].value) return new Set();
@@ -241,7 +228,9 @@
     const [r,c]=rc(i);
     for(let k=0;k<9;k++){ const a=r*9+k, b=k*9+c; if(board[a].value) used.add(board[a].value); if(board[b].value) used.add(board[b].value); }
     const br=Math.floor(r/3)*3, bc=Math.floor(c/3)*3;
-    for(let rr=0; rr<3; rr++) for(let cc=0; cc<3; cc++){ const idx=(br+rr)*9+(bc+cc); if(board[idx].value) used.add(board[idx].value); }
+    for(let rr=0; rr<3; rr++) for(let cc=0; cc<3; cc++){
+      const idx=(br+rr)*9+(bc+cc); if(board[idx].value) used.add(board[idx].value);
+    }
     return new Set(DIGITS.filter(d=>!used.has(d)));
   }
   function computeCandidates(){
@@ -257,23 +246,32 @@
     return placed;
   }
   function applyPointing(){
-    let removed=0; for(let b=0;b<9;b++){ const box=BOXES[b];
-      for(const d of DIGITS){ const inBox=box.filter(i=> board[i].value==null && board[i].pencil.has(d)); if(inBox.length<=1) continue;
-        const rows=new Set(inBox.map(i=> Math.floor(i/9))); const cols=new Set(inBox.map(i=> i%9));
+    let removed=0; for(let b=0;b<9;b++){
+      const box=BOXES[b];
+      for(const d of DIGITS){
+        const inBox=box.filter(i=> board[i].value==null && board[i].pencil.has(d));
+        if(inBox.length<=1) continue;
+        const rows=new Set(inBox.map(i=> Math.floor(i/9)));
+        const cols=new Set(inBox.map(i=> i%9));
         if(rows.size===1){ const r=[...rows][0]; for(const i of ROWS[r]){ if(!box.includes(i) && board[i].value==null && board[i].pencil.delete(d)) removed++; } }
         if(cols.size===1){ const c=[...cols][0]; for(const i of COLS[c]){ if(!box.includes(i) && board[i].value==null && board[i].pencil.delete(d)) removed++; } }
       }
     }
     return removed;
   }
-  function logicStep(){ computeCandidates(); let progressed=false; while(true){ const n=applyNakedSingles(); if(n===0) break; progressed=true; computeCandidates(); }
+  function logicStep(){
+    computeCandidates();
+    let progressed=false;
+    while(true){ const n=applyNakedSingles(); if(n===0) break; progressed=true; computeCandidates(); }
     const h=applyHiddenSingles(); if(h>0){ progressed=true; computeCandidates(); }
     const p=applyPointing(); if(p>0){ progressed=true; }
-    render(); return progressed; }
+    render();
+    return progressed;
+  }
   function autoSolve(){ let any=false; do{ any=logicStep(); }while(any); }
 
   /*** Input Handling ***/
-  function handleDigit(d, fromPencilClick=false){
+  function handleDigit(d){
     const cell = board[selected]; if(cell.given) return; // can't change given
     pushHistory();
     if(realPencilMode()){
@@ -325,12 +323,8 @@
   document.getElementById('autoBtn').onclick = ()=>{ pushHistory(); autoSolve(); };
 
   /*** Import/Export ***/
-  function serialize(){
-    return board.map(c=>({v:c.value, g:c.given, p:[...c.pencil]}));
-  }
-  function deserialize(data){
-    board = data.map(x=>({value:x.v??null, given:!!x.g, pencil:new Set(x.p)}));
-  }
+  function serialize(){ return board.map(c=>({v:c.value, g:c.given, p:[...c.pencil]})); }
+  function deserialize(data){ board = data.map(x=>({value:(x.v!==undefined && x.v!==null) ? x.v : null, given:!!x.g, pencil:new Set(x.p)})); }
   function exportJSON(){
     const data = JSON.stringify(serialize());
     ioArea.value = data;
@@ -339,16 +333,16 @@
   }
   function importJSON(text){
     try{
-      if(text.trim().length===81 && /^[-.0-9]+$/.test(text.trim())){
-        // 81-char digits string
+      const trimmed = text.trim();
+      if(trimmed.length===81 && /^[-.0-9]+$/.test(trimmed)){
         pushHistory();
         board = Array.from({length:size}, (_,i)=>{
-          const ch = text[i]; const n = (ch==='.'||ch==='0')? 0 : Number(ch);
+          const ch = trimmed[i]; const n = (ch==='.'||ch==='0')? 0 : Number(ch);
           return { value: n? n: null, given: !!n, pencil: new Set() };
         });
         render(); select(0); return;
       }
-      const parsed = JSON.parse(text);
+      const parsed = JSON.parse(trimmed);
       if(Array.isArray(parsed) && parsed.length===size){ pushHistory(); deserialize(parsed); render(); select(0); }
       else alert('格式不正确：需要 81 长度字符串或导出的 JSON');
     }catch(err){ alert('解析失败：'+err.message); }
@@ -361,31 +355,46 @@
   function selfTests(){
     const ok = [];
     ok.push(ROWS.length===9 && COLS.length===9 && BOXES.length===9);
-    // Empty board: center cell has 9 candidates
+    // Test 1: Empty board center cell should have 9 candidates
     const snapshot = cloneBoard(board);
     board = Array.from({length:size},()=>({value:null,given:false,pencil:new Set()}));
-    const cands = candidatesFor(40); // center
-    ok.push(cands.size===9);
-    // Simple row constraint: put 1..8 on row 4 except last cell, then last should have only candidate 9
+    const candsCenter = candidatesFor(40);
+    ok.push(candsCenter.size===9);
+    // Test 2: Row constraint -> last cell naked single 9 (row 4)
     for(let c=0;c<8;c++) board[4*9+c].value=c+1;
     computeCandidates();
     ok.push(board[4*9+8].pencil.size===1 && [...board[4*9+8].pencil][0]===9);
+    // Test 3: serialize/deserialize round trip
+    const ser = serialize();
+    deserialize(ser); // should not throw
+    ok.push(Array.isArray(ser) && ser.length===81);
+    // Test 4: import 81-string given count
+    const sample = '530070000600195000098000060800060003400803001700020006060000280000419005000080079';
+    const nonZero = [...sample].filter(ch=> ch!=='0').length;
+    importJSON(sample);
+    const givenCount = board.filter(c=>c.given).length;
+    ok.push(givenCount===nonZero);
     // restore
     board = snapshot;
-    if(ok.every(Boolean)){
-      console.log('[SelfTest] PASS');
-    } else {
-      console.warn('[SelfTest] FAIL', ok);
-    }
+    if(ok.every(Boolean)) console.log('[SelfTest] PASS'); else console.warn('[SelfTest] FAIL', ok);
   }
-  // Run once on load (non-destructive)
   selfTests();
+
+  // Diagnostics button
+  document.getElementById('diagBtn').onclick = ()=>{
+    const env = { ua: navigator.userAgent, lang: navigator.language, tz: Intl.DateTimeFormat().resolvedOptions().timeZone };
+    computeCandidates();
+    const empties = board.filter(c=>c.value==null).length;
+    alert(`【Diagnostics】\nSelfTests ran (see console).\nEmpty cells: ${empties}\nUA: ${env.ua}\nLang: ${env.lang}\nTZ: ${env.tz}`);
+  };
 
   // Load from localStorage if present
   (function init(){
     render(); select(0); updateModeUI(); updatePencilVisibility();
     const saved = localStorage.getItem('sudoku-mini-board');
     if(saved){ try{ deserialize(JSON.parse(saved)); render(); } catch(e){ console.warn('Restore failed:', e); } }
+    const ver = '1.2.'+(''+Math.floor(Date.now()/1000)).slice(-5);
+    const ve = document.getElementById('ver'); if(ve) ve.textContent = ver;
   })();
 })();
 </script>
